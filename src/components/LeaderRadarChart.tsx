@@ -44,7 +44,9 @@ const LeaderRadarChart = ({ qualities, title, teamAverage, showTeamData = false 
           </div>
         )}
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={data}>
+          {/* outerRadius меньше дефолтных 80%: иначе длинные русские подписи
+              («устойчивость», «уникальность») обрезаются краем SVG */}
+          <RadarChart data={data} outerRadius="68%">
             <PolarGrid 
               stroke="hsl(var(--border))" 
               strokeDasharray="2 4"

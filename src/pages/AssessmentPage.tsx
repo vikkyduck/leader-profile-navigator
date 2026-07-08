@@ -265,7 +265,7 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
         </header>
 
         <main className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.4fr] gap-4 md:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_2.05fr] gap-4 md:gap-6">
             
             {/* Desktop sidebar */}
             <div className="hidden lg:block lg:sticky lg:top-6 lg:self-start space-y-3">

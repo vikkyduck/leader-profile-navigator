@@ -189,3 +189,9 @@
     animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
+
+/* Подписи осей радара (recharts) могут на пиксели выходить за рамку SVG —
+   не режем их, а даём выйти в паддинг карточки */
+.recharts-surface {
+  overflow: visible;
+}
