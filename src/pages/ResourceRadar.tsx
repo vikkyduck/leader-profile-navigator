@@ -136,10 +136,16 @@ const ResourceRadar = () => {
     } else {
       toast({ title: 'Готово', description: 'Ваши ответы добавлены в командный портрет' });
       handleReset();
+      // Realtime-канал может быть выключен на таблице — перечитываем сами,
+      // иначе счётчик участников и среднее не обновляются до перезахода
+      loadTeamData();
     }
   };
 
   const hasAnyChecked = Object.values(checkedState).some((arr) => arr.some(Boolean));
+  // Командную карту можно смотреть и без своих ответов — достаточно ID команды,
+  // по которому уже есть оценки
+  const hasTeamData = teamId.length > 0 && responseCount > 0 && teamAverage.length > 0;
 
   if (showResults) {
     return (
@@ -403,7 +409,7 @@ const ResourceRadar = () => {
 
         <div
           className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
-            hasAnyChecked ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+            hasAnyChecked || hasTeamData ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
           }`}
         >
           <div className="glass border-t border-border/60 px-4 py-2.5 md:px-6 md:py-3">
@@ -414,9 +420,11 @@ const ResourceRadar = () => {
                 className="flex-1 text-sm py-4 md:py-5 rounded-xl font-medium"
               >
                 <Eye className="w-4 h-4 mr-1.5" />
-                {filledBlocks < totalBlocks
-                  ? `Карта (${filledBlocks}/${totalBlocks})`
-                  : 'Карта ресурсов'}
+                {!hasAnyChecked && hasTeamData
+                  ? 'Карта команды'
+                  : filledBlocks < totalBlocks
+                    ? `Карта (${filledBlocks}/${totalBlocks})`
+                    : 'Карта ресурсов'}
               </Button>
               <Button
                 onClick={handleReset}
@@ -433,7 +441,7 @@ const ResourceRadar = () => {
           </div>
         </div>
 
-        {hasAnyChecked && <div className="h-20" />}
+        {(hasAnyChecked || hasTeamData) && <div className="h-20" />}
       </div>
     </div>
   );

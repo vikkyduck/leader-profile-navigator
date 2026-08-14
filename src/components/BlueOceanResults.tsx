@@ -119,6 +119,8 @@ const BlueOceanResults = ({
     : 0;
   const teamResult = getResultLevel(teamPercentage);
   const ownEmpty = totalChecked === 0;
+  // Что описываем ниже по странице: команду, если своих ответов нет
+  const shownResult = ownEmpty && hasTeamData ? teamResult : result;
 
   const blockStats = config.qualities.map((q) => {
     const checked = checkedState[q.id]?.filter(Boolean).length || 0;
@@ -308,9 +310,10 @@ const BlueOceanResults = ({
           </div>
         )}
 
-        {/* Description */}
-        <div className={`rounded-xl border ${result.borderColor} ${result.bgColor} p-5 md:p-7`}>
-          {result.description.split('\n\n').map((paragraph, i) => (
+        {/* Описание зоны — той же, что показана в карточке сверху: без своих
+            ответов это команда, иначе собственный результат */}
+        <div className={`rounded-xl border ${shownResult.borderColor} ${shownResult.bgColor} p-5 md:p-7`}>
+          {shownResult.description.split('\n\n').map((paragraph, i) => (
             <p key={i} className="text-foreground/75 leading-relaxed text-[13px] md:text-sm mb-3 last:mb-0">
               {paragraph}
             </p>

@@ -443,9 +443,11 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
                 className="flex-1 text-sm py-4 md:py-5 rounded-xl font-medium"
               >
                 <Eye className="w-4 h-4 mr-1.5" />
-                {filledBlocks < totalBlocks
-                  ? `Результат (${filledBlocks}/${totalBlocks})`
-                  : 'Результат'}
+                {!hasAnyChecked && hasTeamData
+                  ? 'Результат команды'
+                  : filledBlocks < totalBlocks
+                    ? `Результат (${filledBlocks}/${totalBlocks})`
+                    : 'Результат'}
               </Button>
               <Button
                 onClick={handleReset}
