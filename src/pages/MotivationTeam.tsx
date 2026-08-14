@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, KeyRound, RefreshCw, Users } from 'lucide-react';
+import { Download, Eye, EyeOff, KeyRound, RefreshCw, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import BrandLogo from '@/components/BrandLogo';
 import DualRadarChart from '@/components/DualRadarChart';
@@ -45,28 +45,47 @@ const MotivationTeam = () => {
     () => keyFromLink ?? localStorage.getItem(KEY_STORAGE) ?? ''
   );
   const [keyInput, setKeyInput] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [teams, setTeams] = useState<MotivationTeamSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(teamFromLink);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!secret) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { teams } = await loadMotivationSummary(secret);
-      setTeams(teams);
-      localStorage.setItem(KEY_STORAGE, secret);
-      setSelected((prev) => prev ?? teams[0]?.teamId ?? null);
-    } catch (e) {
-      const status = (e as Error & { status?: number }).status;
-      setError(status === 401 ? 'Ключ доступа не подошёл' : 'Не удалось загрузить данные');
-      setTeams([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [secret]);
+  const load = useCallback(
+    async (override?: string) => {
+      const key = override ?? secret;
+      if (!key) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const { teams } = await loadMotivationSummary(key);
+        setTeams(teams);
+        localStorage.setItem(KEY_STORAGE, key);
+        setSelected((prev) => prev ?? teams[0]?.teamId ?? null);
+      } catch (e) {
+        const status = (e as Error & { status?: number }).status;
+        setError(
+          status === 401 ? 'Ключ доступа не подошёл' : 'Сервер не отвечает — попробуйте ещё раз'
+        );
+        setTeams([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [secret]
+  );
+
+  /** Пробелы и переносы при копировании ключа — частая причина «не заходит» */
+  const cleanKey = (v: string) => v.replace(/\s+/g, '');
+
+  const openWithKey = () => {
+    const key = cleanKey(keyInput);
+    if (!key) return;
+    setSecret(key);
+    // Проверяем сразу: иначе повторная попытка тем же ключом ничего не делала бы,
+    // потому что состояние не менялось и эффект не срабатывал
+    load(key);
+  };
 
   useEffect(() => {
     load();
@@ -141,22 +160,37 @@ const MotivationTeam = () => {
             <Label htmlFor="key" className="text-xs text-muted-foreground mb-1.5 block">
               Ключ доступа
             </Label>
-            <Input
-              id="key"
-              type="password"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && setSecret(keyInput.trim())}
-              className="bg-background border-border rounded-lg text-sm h-9"
-            />
+            <div className="relative">
+              <Input
+                id="key"
+                type={showKey ? 'text' : 'password'}
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && openWithKey()}
+                autoComplete="off"
+                spellCheck={false}
+                className="bg-background border-border rounded-lg text-sm h-9 pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                aria-label={showKey ? 'Скрыть ключ' : 'Показать ключ'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Нажмите на глаз, чтобы проверить, что ключ введён без опечаток.
+            </p>
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <Button
-            onClick={() => setSecret(keyInput.trim())}
+            onClick={openWithKey}
             className="w-full rounded-lg"
-            disabled={!keyInput.trim()}
+            disabled={!cleanKey(keyInput) || loading}
           >
-            Открыть
+            {loading ? 'Проверяем…' : 'Открыть'}
           </Button>
         </div>
       </div>
@@ -168,7 +202,13 @@ const MotivationTeam = () => {
       <header className="mx-auto max-w-4xl mb-6">
         <div className="flex items-center justify-between mb-6">
           <BrandLogo size="lg" />
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="rounded-lg">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => load()}
+            disabled={loading}
+            className="rounded-lg"
+          >
             <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
