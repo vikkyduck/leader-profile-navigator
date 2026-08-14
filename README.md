@@ -1,73 +1,54 @@
-# Welcome to your Lovable project
+# Leader Profile Navigator
 
-## Project info
+Набор диагностических радаров для командной и личной оценки: человек отвечает на
+вопросы инструмента, получает радар-диаграмму, интерпретацию и PDF. В командном
+режиме ответы собираются анонимно и показываются средним по команде.
 
-**URL**: https://lovable.dev/projects/80d779e4-d8d7-4a31-85da-28883a18a55c
+Прод: **http://5.129.198.180:8090/**
 
-## How can I edit this code?
+## Инструменты
 
-There are several ways of editing your application.
+| Маршрут | Инструмент |
+| --- | --- |
+| `/` и `/blue-ocean` | Голубой океан |
+| `/leadership-radar` | Радар лидерства |
+| `/indicator-radar` | Радар индикаторов |
+| `/resource-radar` | Радар ресурсов |
+| `/edtech-risk` | Риски EdTech |
 
-**Use Lovable**
+Содержание каждого инструмента (блоки, критерии, тексты интерпретаций) описано
+данными в `src/data/*.ts` — экраны общие, различается только конфигурация.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/80d779e4-d8d7-4a31-85da-28883a18a55c) and start prompting.
+## Стек
 
-Changes made via Lovable will be committed automatically to this repo.
+Vite + React 18 + TypeScript, Tailwind и shadcn/ui, recharts для радаров,
+jsPDF для выгрузки. Хранилище ответов — облачный Supabase
+(`src/integrations/supabase/`), схема и политики — в `supabase/migrations/`.
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Локальный запуск
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
+cp .env.example .env   # подставить значения своего проекта Supabase
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Переменные окружения — см. `.env.example`. Ключ `PUBLISHABLE` (anon) публичный
+по замыслу: он попадает в браузерный бандл, а доступ к данным ограничивают
+политики RLS в миграциях, а не секретность ключа.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Деплой
 
-**Use GitHub Codespaces**
+```sh
+./deploy.sh
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Сборка идёт локально (`vite build`), на Timeweb VDS уезжает только `dist/`
+(rsync в `/opt/leader-navigator/dist`), раздаёт nginx на порту 8090. Хост можно
+переопределить переменными `SERVER_USER` и `SERVER_HOST`.
 
-## What technologies are used for this project?
+## Данные и приватность
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/80d779e4-d8d7-4a31-85da-28883a18a55c) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Командные ответы (`anonymous_team_responses` и таблицы по инструментам) пишутся
+без привязки к пользователю: код команды + оценки. Персональные данные форма не
+собирает.
