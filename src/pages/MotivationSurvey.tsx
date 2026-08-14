@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,8 @@ const MotivationSurvey = () => {
   const [submitted, setSubmitted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [showMobileRadar, setShowMobileRadar] = useState(false);
+  /** Какой мотив только что упёрся в лимит — чтобы объяснить прямо в карточке */
+  const [refused, setRefused] = useState<{ index: number; score: number } | null>(null);
 
   const test = step === 1 ? ENABLEMENT_TEST : SIGNIFICANCE_TEST;
   const values = step === 1 ? enablement : significance;
@@ -53,15 +55,34 @@ const MotivationSurvey = () => {
   const answered = values.filter((v) => v > 0).length;
   const complete = answered === MOTIVES.length;
 
+  /** Сколько раз каждая оценка уже стоит в Тесте №2 (индекс = сама оценка) */
+  const scoreUsage = useMemo(() => {
+    const counts = new Array(11).fill(0) as number[];
+    if (step === 2) significance.forEach((v) => v > 0 && counts[v]++);
+    return counts;
+  }, [step, significance]);
+
+  const exhausted = useMemo(
+    () =>
+      new Set(
+        scoreUsage
+          .map((n, score) => (n >= SIGNIFICANCE_TEST.maxSameScore ? score : -1))
+          .filter((score) => score > 0)
+      ),
+    [scoreUsage]
+  );
+
   const setAt = (index: number, value: number) => {
     // Жёсткое ограничение методики для Теста №2: одна и та же оценка
     // не может стоять больше трёх раз, поэтому четвёртую просто не ставим.
     if (step === 2 && countScore(significance, value, index) >= SIGNIFICANCE_TEST.maxSameScore) {
+      setRefused({ index, score: value });
       toast.error(
         `Оценка ${value} уже стоит у трёх мотивов — по инструкции больше нельзя. Выберите другую.`
       );
       return;
     }
+    setRefused(null);
     setValues((prev) => prev.map((v, i) => (i === index ? value : v)));
   };
 
@@ -96,6 +117,43 @@ const MotivationSurvey = () => {
   }
 
   const progressPercent = Math.round((answered / MOTIVES.length) * 100);
+
+  /** Наглядный «остаток» оценок: видно до клика, что 8 уже израсходована */
+  const budgetPanel =
+    step === 2 ? (
+      <div className="bg-card rounded-xl border border-border card-shadow p-4">
+        <div className="flex items-baseline justify-between mb-2 gap-2">
+          <span className="text-xs font-semibold text-foreground">Использовано оценок</span>
+          <span className="text-[11px] text-muted-foreground">
+            не более {SIGNIFICANCE_TEST.maxSameScore} раз каждую
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+            const used = scoreUsage[n];
+            const full = used >= SIGNIFICANCE_TEST.maxSameScore;
+            return (
+              <div
+                key={n}
+                className={`px-2 py-1 rounded-lg border text-[11px] tabular-nums ${
+                  full
+                    ? 'bg-muted/40 text-muted-foreground/50 border-border/40 line-through'
+                    : used > 0
+                      ? 'bg-primary/8 text-primary border-primary/20'
+                      : 'bg-background text-muted-foreground border-border'
+                }`}
+              >
+                <span className="font-semibold">{n}</span>
+                <span className="opacity-70">
+                  {' '}
+                  {used}/{SIGNIFICANCE_TEST.maxSameScore}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : null;
 
   const radar = (
     <DualRadarChart
@@ -185,10 +243,24 @@ const MotivationSurvey = () => {
                   {SURVEY_INTRO}
                 </p>
               </div>
+
+              {budgetPanel}
             </div>
 
             <div className="space-y-3">
               <h2 className="text-sm font-semibold text-foreground">{MOTIVES_HEADING}</h2>
+
+              {step === 2 && (
+                <>
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+                    <p className="text-xs text-foreground/80 leading-relaxed">
+                      {SIGNIFICANCE_TEST.rule} Израсходованные оценки гаснут и зачёркиваются —
+                      поставить их четвёртый раз нельзя.
+                    </p>
+                  </div>
+                  <div className="lg:hidden">{budgetPanel}</div>
+                </>
+              )}
 
               {MOTIVES.map((motive, i) => {
                 const value = values[i];
@@ -209,11 +281,22 @@ const MotivationSurvey = () => {
                       </div>
                       <p className="text-sm text-foreground leading-snug">{motive.full}</p>
                     </div>
-                    <ScaleTen value={value} onChange={(v) => setAt(i, v)} ariaLabel={motive.full} />
+                    <ScaleTen
+                      value={value}
+                      onChange={(v) => setAt(i, v)}
+                      exhausted={step === 2 ? exhausted : undefined}
+                      ariaLabel={motive.full}
+                    />
                     <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground/70">
                       <span>1 — {test.low}</span>
                       <span>10 — {test.high}</span>
                     </div>
+                    {refused?.index === i && (
+                      <p className="text-[11px] text-destructive mt-2 leading-snug">
+                        Оценка {refused.score} уже стоит у трёх мотивов — по инструкции больше
+                        нельзя. Выберите другую.
+                      </p>
+                    )}
                   </div>
                 );
               })}
