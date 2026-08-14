@@ -112,6 +112,14 @@ const BlueOceanResults = ({
   const percentage = Math.round((totalChecked / totalCriteria) * 100);
   const result = getResultLevel(percentage);
 
+  // Командный результат: среднее по шкалам 0–10 → процент, зона — той же шкалой
+  const hasTeamData = teamId.length > 0 && responseCount > 0 && teamAverage.length > 0;
+  const teamPercentage = hasTeamData
+    ? Math.round((teamAverage.reduce((s, v) => s + v, 0) / teamAverage.length) * 10)
+    : 0;
+  const teamResult = getResultLevel(teamPercentage);
+  const ownEmpty = totalChecked === 0;
+
   const blockStats = config.qualities.map((q) => {
     const checked = checkedState[q.id]?.filter(Boolean).length || 0;
     const total = q.criteria.length;
@@ -211,8 +219,37 @@ const BlueOceanResults = ({
       </header>
 
       <main className="mx-auto max-w-4xl space-y-4 md:space-y-6">
-        {/* Result card + Radar */}
+        {/* Result card + Radar. Если своих ответов нет, а команда есть —
+            основной карточкой становится командный результат */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+          {ownEmpty && hasTeamData ? (
+            <div className={`rounded-xl border ${teamResult.borderColor} ${teamResult.bgColor} card-shadow p-5 md:p-7 space-y-4`}>
+              <div className="flex items-start gap-3">
+                <div className={`${teamResult.color} mt-0.5`}>{teamResult.icon}</div>
+                <div>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Команда «{teamId}» · {teamResult.range} «Да»
+                  </p>
+                  <h2 className={`text-lg md:text-xl font-semibold ${teamResult.color} mt-0.5`}>
+                    {teamResult.title}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/40">
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Оценок в команде</p>
+                  <p className="text-xl font-semibold text-foreground tabular-nums">{responseCount}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Средний процент</p>
+                  <p className={`text-xl font-semibold ${teamResult.color} tabular-nums`}>
+                    {teamPercentage}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className={`rounded-xl border ${result.borderColor} ${result.bgColor} card-shadow p-5 md:p-7 space-y-4`}>
             <div className="flex items-start gap-3">
               <div className={`${result.color} mt-0.5`}>{result.icon}</div>
@@ -241,6 +278,7 @@ const BlueOceanResults = ({
               </div>
             </div>
           </div>
+          )}
 
           <div className="bg-card rounded-xl border border-border card-shadow p-4 h-64 md:h-80">
             <LeaderRadarChart
@@ -251,6 +289,24 @@ const BlueOceanResults = ({
             />
           </div>
         </div>
+
+        {/* Командная сводка — когда есть и свои ответы, и данные команды */}
+        {hasTeamData && !ownEmpty && (
+          <div className="bg-card rounded-xl border border-border card-shadow p-4 md:p-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground">Команда «{teamId}»</span>
+              <span className="text-[11px] text-muted-foreground">{responseCount} оценок</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Средний процент</span>
+              <span className={`text-sm font-semibold ${teamResult.color} tabular-nums`}>{teamPercentage}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Зона</span>
+              <span className={`text-sm font-semibold ${teamResult.color}`}>{teamResult.title}</span>
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div className={`rounded-xl border ${result.borderColor} ${result.bgColor} p-5 md:p-7`}>

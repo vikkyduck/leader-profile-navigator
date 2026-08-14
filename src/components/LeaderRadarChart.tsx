@@ -9,7 +9,11 @@ interface LeaderRadarChartProps {
 }
 
 const LeaderRadarChart = ({ qualities, title, teamAverage, showTeamData = false }: LeaderRadarChartProps) => {
-  const hasData = qualities.some(q => q.score > 0);
+  // «Есть данные» = свои ответы ИЛИ командное среднее: в командном режиме
+  // без своих ответов плейсхолдер не должен перекрывать радар команды
+  const hasData =
+    qualities.some(q => q.score > 0) ||
+    (showTeamData && (teamAverage?.some(v => v > 0) ?? false));
   const data = qualities.map((quality, index) => ({
     subject: quality.label.replace('Ваш ', '').replace('Ваша ', ''),
     value: quality.score,

@@ -191,11 +191,17 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
         description: "Ваша анонимная оценка добавлена",
       });
       handleReset();
+      // Realtime-канал может быть выключен на таблице — перечитываем сами,
+      // иначе счётчик оценок и среднее команды не обновляются до перезахода
+      loadTeamData();
     }
   };
 
   const hasAnyScore = qualities.some(q => q.score > 0);
   const hasAnyChecked = Object.values(checkedState).some(arr => arr.some(Boolean));
+  // Командный результат можно смотреть и без собственных ответов —
+  // достаточно ввести ID команды, по которому уже есть оценки
+  const hasTeamData = teamId.length > 0 && responseCount > 0 && teamAverage.length > 0;
 
   if (showResults) {
     const ResultsComponent =
@@ -411,7 +417,7 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
                 )}
                 <Button
                   onClick={() => setShowResults(true)}
-                  disabled={!hasAnyChecked}
+                  disabled={!hasAnyChecked && !hasTeamData}
                   size="lg"
                   className="w-full text-sm py-5 rounded-xl font-medium transition-all duration-200 disabled:opacity-30"
                 >
@@ -426,7 +432,7 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
         {/* Sticky bottom panel */}
         <div
           className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
-            hasAnyChecked ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+            hasAnyChecked || hasTeamData ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
           }`}
         >
           <div className="glass border-t border-border/60 px-4 py-2.5 md:px-6 md:py-3">
@@ -455,7 +461,7 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
         </div>
 
         {/* Bottom spacer */}
-        {hasAnyChecked && <div className="h-20" />}
+        {(hasAnyChecked || hasTeamData) && <div className="h-20" />}
       </div>
     </div>
   );
