@@ -4,7 +4,7 @@ export const indicatorRadarConfig: InstrumentConfig = {
   id: 'indicator-radar',
   title: 'Радар индикаторов',
   subtitle: 'Отметьте утверждения, которые вам подходят',
-  tableName: 'indicator_radar_responses',
+  instrument: 'indicator',
   showLogo: false,
   qualities: [
     {

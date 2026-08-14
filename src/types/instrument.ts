@@ -1,4 +1,5 @@
 import { CriterionWithTitle } from './leader';
+import type { Instrument } from '@/lib/api';
 
 export interface InstrumentQuality {
   id: string;
@@ -11,7 +12,8 @@ export interface InstrumentConfig {
   id: string;
   title: string;
   subtitle: string;
-  tableName: string;
+  /** Идентификатор инструмента в собственном API (/api/responses) */
+  instrument: Instrument;
   showLogo?: boolean;
   qualities: InstrumentQuality[];
 }

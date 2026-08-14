@@ -4,7 +4,7 @@ export const leadershipRadarConfig: InstrumentConfig = {
   id: 'leadership-radar',
   title: 'Анонимный Радар Команды',
   subtitle: 'Оцените лидерские качества вашей команды',
-  tableName: 'anonymous_team_responses',
+  instrument: 'leadership',
   qualities: [
     {
       id: 'courage',

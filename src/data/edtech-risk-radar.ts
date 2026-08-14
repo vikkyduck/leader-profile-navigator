@@ -4,7 +4,7 @@ export const edtechRiskRadarConfig: InstrumentConfig = {
   id: 'edtech-risk-radar',
   title: 'EdTech Risk Management Radar',
   subtitle: 'Отметьте утверждения, которые верны для вашего бизнеса. Каждое — отдельный луч радара.',
-  tableName: 'edtech_risk_responses',
+  instrument: 'edtech-risk',
   showLogo: true,
   qualities: [
     {

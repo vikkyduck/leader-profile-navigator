@@ -8,7 +8,7 @@ import ScaleLegend from '@/components/ScaleLegend';
 import { Quality } from '@/types/leader';
 import { InstrumentConfig } from '@/types/instrument';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { loadTeamAggregate, submitResponse } from '@/lib/api';
 import { Send, RotateCcw, Eye, ChevronDown, BarChart3 } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
 import BlueOceanResults from '@/components/BlueOceanResults';
@@ -53,60 +53,22 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
   useEffect(() => {
     if (!teamId) return;
 
-    const channel = supabase
-      .channel(`${config.id}-${teamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: config.tableName,
-          filter: `team_id=eq.${teamId}`,
-        },
-        () => {
-          loadTeamData();
-        }
-      )
-      .subscribe();
-
     loadTeamData();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Realtime у собственного бэкенда нет — опрашиваем раз в 15 секунд,
+    // чтобы чужие отправки подхватывались без перезахода
+    const timer = setInterval(loadTeamData, 15000);
+    return () => clearInterval(timer);
   }, [teamId]);
 
   const loadTeamData = async () => {
     if (!teamId) return;
 
     try {
-      const { data, error } = await supabase
-        .from(config.tableName as any)
-        .select('*')
-        .eq('team_id', teamId);
-
-      if (error) {
-        if (import.meta.env.DEV) console.error('DB Error:', error.code);
-        sonnerToast.error('Не удалось загрузить данные команды');
-        return;
-      }
-
-      if (data) {
-        setResponseCount(data.length);
-
-        if (data.length > 0) {
-          const averages = qualitiesData.map(q => {
-            const sum = (data as any[]).reduce((acc, response) => acc + (response[q.id] || 0), 0);
-            return sum / data.length;
-          });
-          setTeamAverage(averages);
-        } else {
-          setTeamAverage([]);
-        }
-      }
+      const { count, averages } = await loadTeamAggregate(config.instrument, teamId);
+      setResponseCount(count);
+      setTeamAverage(count > 0 ? qualitiesData.map(q => averages[q.id] ?? 0) : []);
     } catch {
-      if (import.meta.env.DEV) console.error('Error loading team data');
-      sonnerToast.error('Произошла ошибка');
+      sonnerToast.error('Не удалось загрузить данные команды');
     }
   };
 
@@ -169,32 +131,29 @@ const AssessmentPage = ({ config }: AssessmentPageProps) => {
       return;
     }
 
-    const responseData: Record<string, any> = { team_id: teamId };
+    const scores: Record<string, number> = {};
     for (const q of qualitiesData) {
-      responseData[q.id] = qualities.find(qv => qv.id === q.id)?.score || 0;
+      scores[q.id] = qualities.find(qv => qv.id === q.id)?.score || 0;
     }
 
-    const { error } = await supabase
-      .from(config.tableName as any)
-      .insert(responseData);
-
-    if (error) {
-      if (import.meta.env.DEV) console.error('DB Error:', error.code);
+    try {
+      await submitResponse(config.instrument, teamId, scores);
+    } catch {
       toast({
         title: "Ошибка",
         description: "Не удалось отправить оценку",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Успешно!",
-        description: "Ваша анонимная оценка добавлена",
-      });
-      handleReset();
-      // Realtime-канал может быть выключен на таблице — перечитываем сами,
-      // иначе счётчик оценок и среднее команды не обновляются до перезахода
-      loadTeamData();
+      return;
     }
+
+    toast({
+      title: "Успешно!",
+      description: "Ваша анонимная оценка добавлена",
+    });
+    handleReset();
+    // Сразу перечитываем: иначе счётчик и среднее обновятся только по таймеру
+    loadTeamData();
   };
 
   const hasAnyScore = qualities.some(q => q.score > 0);

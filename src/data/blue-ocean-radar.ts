@@ -4,7 +4,7 @@ export const blueOceanConfig: InstrumentConfig = {
   id: 'blue-ocean',
   title: 'Диагностика вашего продукта на устойчивость',
   subtitle: 'Проверьте, выживет ли ваш продукт в неопределённости — и где уязвимости. 3 минуты.',
-  tableName: 'blue_ocean_responses',
+  instrument: 'blue-ocean',
   qualities: [
     {
       id: 'market',

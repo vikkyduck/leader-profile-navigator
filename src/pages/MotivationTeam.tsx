@@ -7,16 +7,13 @@ import { Download, KeyRound, RefreshCw, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import BrandLogo from '@/components/BrandLogo';
 import DualRadarChart from '@/components/DualRadarChart';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  loadMotivationRows,
+  loadMotivationSummary,
+  type MotivationTeamSummary,
+} from '@/lib/api';
 import { MOTIVES, ENABLEMENT_TEST, SIGNIFICANCE_TEST } from '@/data/motivation-motives';
 import { generateMotivationPdf } from '@/lib/generate-motivation-pdf';
-
-interface TeamSummary {
-  team_id: string;
-  responses: number;
-  significance: number[];
-  enablement: number[];
-}
 
 const KEY_STORAGE = 'motivation_admin_key';
 
@@ -34,13 +31,10 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
   URL.revokeObjectURL(url);
 }
 
-const toNumbers = (xs: unknown): number[] =>
-  Array.isArray(xs) ? xs.map((v) => Number(v)) : [];
-
 /**
  * Командный экран: средние по команде «как по одному сотруднику» — две линии
- * на паутинке, а не по линии на участника. Данные приходят только через
- * RPC с ключом: напрямую таблица из браузера не читается.
+ * на паутинке, а не по линии на участника. Данные отдаёт собственный бэкенд
+ * и только по ключу: публичный маршрут для мотивации закрыт.
  */
 const MotivationTeam = () => {
   const [searchParams] = useSearchParams();
@@ -51,7 +45,7 @@ const MotivationTeam = () => {
     () => keyFromLink ?? localStorage.getItem(KEY_STORAGE) ?? ''
   );
   const [keyInput, setKeyInput] = useState('');
-  const [teams, setTeams] = useState<TeamSummary[]>([]);
+  const [teams, setTeams] = useState<MotivationTeamSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(teamFromLink);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,43 +54,30 @@ const MotivationTeam = () => {
     if (!secret) return;
     setLoading(true);
     setError(null);
-    const { data, error } = await (supabase as any).rpc('motivation_summary', {
-      p_secret: secret,
-      p_team: null,
-    });
-    setLoading(false);
-
-    if (error) {
-      setError(
-        error.code === '42501' || /ключ/i.test(error.message ?? '')
-          ? 'Ключ доступа не подошёл'
-          : 'Не удалось загрузить данные'
-      );
+    try {
+      const { teams } = await loadMotivationSummary(secret);
+      setTeams(teams);
+      localStorage.setItem(KEY_STORAGE, secret);
+      setSelected((prev) => prev ?? teams[0]?.teamId ?? null);
+    } catch (e) {
+      const status = (e as Error & { status?: number }).status;
+      setError(status === 401 ? 'Ключ доступа не подошёл' : 'Не удалось загрузить данные');
       setTeams([]);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    const parsed: TeamSummary[] = (data ?? []).map((row: any) => ({
-      team_id: row.team_id,
-      responses: Number(row.responses),
-      significance: toNumbers(row.significance),
-      enablement: toNumbers(row.enablement),
-    }));
-    setTeams(parsed);
-    localStorage.setItem(KEY_STORAGE, secret);
-    setSelected((prev) => prev ?? parsed[0]?.team_id ?? null);
   }, [secret]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const current = teams.find((t) => t.team_id === selected) ?? teams[0] ?? null;
+  const current = teams.find((t) => t.teamId === selected) ?? teams[0] ?? null;
 
   const handleAveragesCsv = () => {
     if (!current) return;
-    downloadCsv(`motivaciya-srednie-${current.team_id}.csv`, [
-      ['Команда', current.team_id],
+    downloadCsv(`motivaciya-srednie-${current.teamId}.csv`, [
+      ['Команда', current.teamId],
       ['Анкет в среднем', current.responses],
       [],
       ['Мотив', SIGNIFICANCE_TEST.seriesName, ENABLEMENT_TEST.seriesName, 'Разрыв'],
@@ -111,27 +92,24 @@ const MotivationTeam = () => {
 
   const handleRowsCsv = async () => {
     if (!current) return;
-    const { data, error } = await (supabase as any).rpc('motivation_rows', {
-      p_secret: secret,
-      p_team: current.team_id,
-    });
-    if (error) {
+    try {
+      const { rows } = await loadMotivationRows(secret, current.teamId);
+      const header = [
+        'Команда',
+        'Отправлено',
+        ...MOTIVES.map((m) => `Важно: ${m.full}`),
+        ...MOTIVES.map((m) => `Даёт: ${m.full}`),
+      ];
+      const body = rows.map((r) => [
+        r.teamId,
+        new Date(r.createdAt).toLocaleString('ru-RU'),
+        ...r.significance,
+        ...r.enablement,
+      ]);
+      downloadCsv(`motivaciya-ankety-${current.teamId}.csv`, [header, ...body]);
+    } catch {
       toast.error('Не удалось выгрузить анкеты');
-      return;
     }
-    const header = [
-      'Команда',
-      'Отправлено',
-      ...MOTIVES.map((m) => `Важно: ${m.full}`),
-      ...MOTIVES.map((m) => `Даёт: ${m.full}`),
-    ];
-    const body = (data ?? []).map((r: any) => [
-      r.team_id,
-      new Date(r.created_at).toLocaleString('ru-RU'),
-      ...toNumbers(r.significance),
-      ...toNumbers(r.enablement),
-    ]);
-    downloadCsv(`motivaciya-ankety-${current.team_id}.csv`, [header, ...body]);
   };
 
   const handlePdf = async () => {
@@ -139,7 +117,7 @@ const MotivationTeam = () => {
     await generateMotivationPdf({
       title: 'Мотивация: портрет команды',
       subtitle: 'Средние оценки по команде',
-      teamCode: current.team_id,
+      teamCode: current.teamId,
       responses: current.responses,
       seriesALabel: SIGNIFICANCE_TEST.seriesName,
       seriesBLabel: ENABLEMENT_TEST.seriesName,
@@ -209,15 +187,15 @@ const MotivationTeam = () => {
           <div className="flex flex-wrap gap-2">
             {teams.map((t) => (
               <button
-                key={t.team_id}
-                onClick={() => setSelected(t.team_id)}
+                key={t.teamId}
+                onClick={() => setSelected(t.teamId)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                  current?.team_id === t.team_id
+                  current?.teamId === t.teamId
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card text-muted-foreground border-border hover:text-foreground'
                 }`}
               >
-                {t.team_id}
+                {t.teamId}
                 <span className="ml-1.5 opacity-70 tabular-nums">{t.responses}</span>
               </button>
             ))}
@@ -226,9 +204,7 @@ const MotivationTeam = () => {
 
         {!current && !loading && (
           <div className="bg-card rounded-xl border border-border card-shadow p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Пока нет ни одной отправленной анкеты.
-            </p>
+            <p className="text-sm text-muted-foreground">Пока нет ни одной отправленной анкеты.</p>
           </div>
         )}
 
@@ -238,13 +214,11 @@ const MotivationTeam = () => {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-semibold text-foreground">
-                  Команда «{current.team_id}»
+                  Команда «{current.teamId}»
                 </span>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground mr-2">
-                  Анкет в среднем
-                </span>
+                <span className="text-[11px] text-muted-foreground mr-2">Анкет в среднем</span>
                 <span className="text-lg font-semibold text-foreground tabular-nums">
                   {current.responses}
                 </span>
@@ -274,9 +248,7 @@ const MotivationTeam = () => {
             </div>
 
             <div className="bg-card rounded-xl border border-border card-shadow p-4 md:p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-3">
-                Средние по мотивам
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Средние по мотивам</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>

@@ -9,7 +9,7 @@ import BrandLogo from '@/components/BrandLogo';
 import ScaleTen from '@/components/ScaleTen';
 import DualRadarChart from '@/components/DualRadarChart';
 import MotivationResults from '@/components/MotivationResults';
-import { supabase } from '@/integrations/supabase/client';
+import { submitResponse } from '@/lib/api';
 import {
   MOTIVES,
   MOTIVES_HEADING,
@@ -71,15 +71,14 @@ const MotivationSurvey = () => {
       return;
     }
     setSending(true);
-    // .insert() без .select(): читать таблицу участникам запрещено на уровне базы
-    const { error } = await supabase
-      .from('motivation_responses' as any)
-      .insert({ team_id: teamCode, significance, enablement } as any);
-    setSending(false);
-
-    if (error) {
-      toast.error('Не удалось отправить анкету. Попробуйте ещё раз');
+    try {
+      // Читать чужие ответы участнику нельзя — средние сервер отдаёт только по ключу
+      await submitResponse('motivation', teamCode, { significance, enablement });
+    } catch (e) {
+      toast.error((e as Error).message || 'Не удалось отправить анкету. Попробуйте ещё раз');
       return;
+    } finally {
+      setSending(false);
     }
     setSubmitted(true);
     setShowResults(true);

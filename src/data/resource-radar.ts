@@ -14,7 +14,7 @@ export const resourceRadarConfig: InstrumentConfig = {
   id: 'resource-radar',
   title: 'Тонус-менеджмент: где мой источник ресурса?',
   subtitle: 'Отметьте утверждения, которые про вас. Получите карту своих источников энергии и архетип восстановления. ~5 минут.',
-  tableName: 'resource_radar_responses',
+  instrument: 'resource',
   qualities: [
     {
       id: 'visionary',
