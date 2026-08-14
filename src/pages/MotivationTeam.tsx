@@ -98,7 +98,7 @@ const MotivationTeam = () => {
         'Команда',
         'Отправлено',
         ...MOTIVES.map((m) => `Важно: ${m.full}`),
-        ...MOTIVES.map((m) => `Даёт: ${m.full}`),
+        ...MOTIVES.map((m) => `Возможности: ${m.full}`),
       ];
       const body = rows.map((r) => [
         r.teamId,
@@ -255,7 +255,7 @@ const MotivationTeam = () => {
                     <tr className="text-muted-foreground text-left">
                       <th className="font-medium pb-2">Мотив</th>
                       <th className="font-medium pb-2 text-right whitespace-nowrap">Важно</th>
-                      <th className="font-medium pb-2 text-right whitespace-nowrap">Даёт</th>
+                      <th className="font-medium pb-2 text-right whitespace-nowrap">Возможности</th>
                       <th className="font-medium pb-2 text-right whitespace-nowrap">Разрыв</th>
                     </tr>
                   </thead>

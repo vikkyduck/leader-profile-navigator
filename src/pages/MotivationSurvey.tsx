@@ -186,8 +186,11 @@ const MotivationSurvey = () => {
             </div>
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-semibold text-foreground leading-tight">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             {test.title}
+          </p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-foreground leading-tight mt-1">
+            {test.heading}
           </h1>
           <div className="mt-3 space-y-2 max-w-2xl">
             <p className="text-sm text-foreground/80 leading-relaxed">{test.intro}</p>

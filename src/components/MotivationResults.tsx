@@ -27,7 +27,7 @@ const MotivationResults = ({ significance, enablement, onBack }: MotivationResul
     gap: significance[i] - enablement[i],
   }));
 
-  // Дефицит — важно, но компания не даёт. Запас — даёт больше, чем нужно.
+  // Дефицит — важно, но возможности такой нет. Запас — возможностей больше, чем нужно.
   const deficits = [...rows].filter((r) => r.gap > 0).sort((a, b) => b.gap - a.gap).slice(0, 3);
   const surplus = [...rows].filter((r) => r.gap < 0).sort((a, b) => a.gap - b.gap).slice(0, 3);
 
@@ -76,8 +76,8 @@ const MotivationResults = ({ significance, enablement, onBack }: MotivationResul
           Ваш профиль мотивации
         </h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-xl leading-relaxed">
-          Сплошная линия — насколько мотив важен лично вам. Пунктир — насколько компания даёт его
-          реализовать. Расхождение между ними и есть предмет разговора.
+          Сплошная линия — насколько мотив значим лично для вас. Пунктир — какие возможности вы
+          видите на текущем месте работы. Расхождение между ними и есть предмет разговора.
         </p>
       </header>
 
@@ -98,7 +98,7 @@ const MotivationResults = ({ significance, enablement, onBack }: MotivationResul
             </p>
           </div>
           <div className="bg-card rounded-xl border border-border card-shadow p-4 md:p-5">
-            <p className="text-[11px] text-muted-foreground">Средняя реализация в компании</p>
+            <p className="text-[11px] text-muted-foreground">Средние возможности на работе</p>
             <p className="text-xl md:text-2xl font-semibold text-[hsl(var(--chart-2))] tabular-nums mt-0.5">
               {avgEnablement.toFixed(1)}
             </p>
@@ -127,7 +127,7 @@ const MotivationResults = ({ significance, enablement, onBack }: MotivationResul
             {surplus.length > 0 && (
               <div className="bg-card rounded-xl border border-border card-shadow p-4 md:p-5">
                 <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Компания даёт с запасом
+                  Возможностей с запасом
                 </h3>
                 <div className="space-y-2">
                   {surplus.map((r) => (
@@ -152,7 +152,7 @@ const MotivationResults = ({ significance, enablement, onBack }: MotivationResul
                 <tr className="text-muted-foreground text-left">
                   <th className="font-medium pb-2">Мотив</th>
                   <th className="font-medium pb-2 text-right whitespace-nowrap">Важно</th>
-                  <th className="font-medium pb-2 text-right whitespace-nowrap">Даёт</th>
+                  <th className="font-medium pb-2 text-right whitespace-nowrap">Возможности</th>
                   <th className="font-medium pb-2 text-right whitespace-nowrap">Разрыв</th>
                 </tr>
               </thead>
