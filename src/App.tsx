@@ -8,6 +8,8 @@ import BlueOceanRadar from "./pages/BlueOceanRadar";
 import IndicatorRadar from "./pages/IndicatorRadar";
 import ResourceRadar from "./pages/ResourceRadar";
 import EdTechRiskRadar from "./pages/EdTechRiskRadar";
+import MotivationSurvey from "./pages/MotivationSurvey";
+import MotivationTeam from "./pages/MotivationTeam";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,9 @@ const App = () => (
           <Route path="/blue-ocean" element={<BlueOceanRadar />} />
           <Route path="/resource-radar" element={<ResourceRadar />} />
           <Route path="/edtech-risk" element={<EdTechRiskRadar />} />
+          {/* Мотивация: опрос для участников и закрытый экран со средними */}
+          <Route path="/motivation" element={<MotivationSurvey />} />
+          <Route path="/motivation/team" element={<MotivationTeam />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

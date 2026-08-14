@@ -1,5 +1,5 @@
 import { useLocation, Link, useSearchParams } from 'react-router-dom';
-import { Waves, Compass, Target, Battery, ShieldAlert } from 'lucide-react';
+import { Waves, Compass, Target, Battery, ShieldAlert, Gauge } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
 const instruments = [
@@ -8,6 +8,7 @@ const instruments = [
   { path: '/indicator-radar', label: 'Индикаторы', icon: Target },
   { path: '/resource-radar', label: 'Тонус', icon: Battery },
   { path: '/edtech-risk', label: 'EdTech-риски', icon: ShieldAlert },
+  { path: '/motivation', label: 'Мотивация', icon: Gauge },
 ];
 
 const ADMIN_KEY = 'instrument_nav_visible';
